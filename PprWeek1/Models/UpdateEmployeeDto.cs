@@ -1,11 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace PprWeek1.Models.Entities
+namespace PprWeek1.Models
 {
-    public class Employee
+    public class UpdateEmployeeDto
     {
-        public Guid Id { get; set; }
-
         [Required(ErrorMessage = "Name is required.")]
         [MinLength(2, ErrorMessage = "Name must be at least 2 characters.")]
         public required string Name { get; set; }
