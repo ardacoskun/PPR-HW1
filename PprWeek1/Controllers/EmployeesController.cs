@@ -31,7 +31,23 @@ namespace Pa.Api
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ApiResponse<Employee>>> GetEmployeeById(Guid id)
+        public async Task<ActionResult<ApiResponse<Employee>>> GetEmployeeById([FromRoute] Guid id)
+        {
+            var employee = await dbContext.Employees.FindAsync(id);
+            if (employee == null)
+            {
+                return new ApiResponse<Employee>("Employee not found!")
+                {
+                    IsSuccess = false
+                };
+            }
+            return new ApiResponse<Employee>(employee);
+        }
+
+
+        //Id parametresini yi query den alır
+        [HttpGet("ByIdQuery")]
+        public async Task<ActionResult<ApiResponse<Employee>>> GetEmployeeIdByQuery([FromQuery] Guid id)
         {
             var employee = await dbContext.Employees.FindAsync(id);
             if (employee == null)
@@ -123,6 +139,7 @@ namespace Pa.Api
             return new ApiResponse<Employee>(employee);
         }
 
+
         [HttpDelete("{id:guid}")]
         public async Task<ActionResult<ApiResponse<object>>> DeleteEmployee(Guid id)
         {
@@ -144,6 +161,7 @@ namespace Pa.Api
             };
         }
 
+        //Queryden aldığı asc veya desc string ifadelerine göre salary sıralaması yapar. 
         [HttpGet("sort")]
         public async Task<ActionResult<ApiResponse<List<Employee>>>> SortEmployeesBySalary([FromQuery] string sort = "asc")
         {
@@ -162,6 +180,8 @@ namespace Pa.Api
             return new ApiResponse<List<Employee>>(employees);
         }
 
+
+        //Queryden aldığı string ifadeye göre filtreleme yapar. 
         [HttpGet("list")]
         public async Task<ActionResult<ApiResponse<List<Employee>>>> ListEmployeesByName([FromQuery] string name = "")
         {
