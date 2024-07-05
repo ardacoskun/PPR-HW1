@@ -1,12 +1,16 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.JsonPatch;
+﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PprWeek1.Base;
 using PprWeek1.Data;
 using PprWeek1.Models;
 using PprWeek1.Models.Entities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace PprWeek1.Controllers
+namespace Pa.Api
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -14,32 +18,34 @@ namespace PprWeek1.Controllers
     {
         private readonly ApplicationDbContext dbContext;
 
-        public EmployeesController(ApplicationDbContext dbContext) 
+        public EmployeesController(ApplicationDbContext dbContext)
         {
             this.dbContext = dbContext;
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Employee>>> GetAllEmployees()
+        public async Task<ActionResult<ApiResponse<List<Employee>>>> GetAllEmployees()
         {
             var employees = await dbContext.Employees.ToListAsync();
-            return Ok(employees);
+            return new ApiResponse<List<Employee>>(employees);
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<Employee>> GetEmployeeById(Guid id)
+        public async Task<ActionResult<ApiResponse<Employee>>> GetEmployeeById(Guid id)
         {
             var employee = await dbContext.Employees.FindAsync(id);
-            if (employee is null)
+            if (employee == null)
             {
-                return NotFound("Employee not found!");
+                return new ApiResponse<Employee>("Employee not found!")
+                {
+                    IsSuccess = false
+                };
             }
-
-            return Ok(employee);
+            return new ApiResponse<Employee>(employee);
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<Employee>>> AddEmployee([FromBody] AddEmployeeDto addEmployeeDto)
+        public async Task<ActionResult<ApiResponse<Employee>>> AddEmployee([FromBody] AddEmployeeDto addEmployeeDto)
         {
             var employeeEntity = new Employee()
             {
@@ -52,18 +58,22 @@ namespace PprWeek1.Controllers
             dbContext.Employees.Add(employeeEntity);
             await dbContext.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetEmployeeById), new { id = employeeEntity.Id }, new { Message = "User created successfully.", Employee = employeeEntity });
-
+            return new ApiResponse<Employee>(employeeEntity)
+            {
+                IsSuccess = true
+            };
         }
 
         [HttpPut("{id:guid}")]
-        public async Task <ActionResult<List<Employee>>> UpdateEmployee(Guid id, [FromBody] UpdateEmployeeDto updateEmployeeDto)
+        public async Task<ActionResult<ApiResponse<Employee>>> UpdateEmployee(Guid id, [FromBody] UpdateEmployeeDto updateEmployeeDto)
         {
             var employee = await dbContext.Employees.FindAsync(id);
-
-            if (employee is null)
+            if (employee == null)
             {
-                return NotFound("Employee not found!");
+                return new ApiResponse<Employee>("Employee not found!")
+                {
+                    IsSuccess = false
+                };
             }
 
             employee.Name = updateEmployeeDto.Name;
@@ -73,18 +83,19 @@ namespace PprWeek1.Controllers
 
             await dbContext.SaveChangesAsync();
 
-            return Ok(employee);
-
+            return new ApiResponse<Employee>(employee);
         }
 
         [HttpPatch("{id:guid}")]
-        public async Task<ActionResult<Employee>> PatchEmployee(Guid id, [FromBody] JsonPatchDocument<UpdateEmployeeDto> patchDocument)
+        public async Task<ActionResult<ApiResponse<Employee>>> PatchEmployee(Guid id, [FromBody] JsonPatchDocument<UpdateEmployeeDto> patchDocument)
         {
             var employee = await dbContext.Employees.FindAsync(id);
-
-            if (employee is null)
+            if (employee == null)
             {
-                return NotFound("Employee not found!");
+                return new ApiResponse<Employee>("Employee not found!")
+                {
+                    IsSuccess = false
+                };
             }
 
             var employeeDto = new UpdateEmployeeDto
@@ -109,30 +120,32 @@ namespace PprWeek1.Controllers
 
             await dbContext.SaveChangesAsync();
 
-            return Ok(employee);
+            return new ApiResponse<Employee>(employee);
         }
 
-
         [HttpDelete("{id:guid}")]
-        public async Task<ActionResult<List<Employee>>> DeleteEmployee(Guid id)
+        public async Task<ActionResult<ApiResponse<object>>> DeleteEmployee(Guid id)
         {
-
             var employee = await dbContext.Employees.FindAsync(id);
-
-            if (employee is null)
+            if (employee == null)
             {
-                return NotFound("Employee not found!");
+                return new ApiResponse<object>("Employee not found!")
+                {
+                    IsSuccess = false
+                };
             }
 
-             dbContext.Employees.Remove(employee);
+            dbContext.Employees.Remove(employee);
             await dbContext.SaveChangesAsync();
 
-            return NoContent();
-
+            return new ApiResponse<object>(null)
+            {
+                IsSuccess = true
+            };
         }
 
         [HttpGet("sort")]
-        public async Task<ActionResult<List<Employee>>> SortEmployeesBySalary([FromQuery] string sort = "asc")
+        public async Task<ActionResult<ApiResponse<List<Employee>>>> SortEmployeesBySalary([FromQuery] string sort = "asc")
         {
             IQueryable<Employee> employeesQuery = dbContext.Employees;
 
@@ -146,11 +159,11 @@ namespace PprWeek1.Controllers
             }
 
             var employees = await employeesQuery.ToListAsync();
-            return Ok(employees);
+            return new ApiResponse<List<Employee>>(employees);
         }
 
         [HttpGet("list")]
-        public async Task<ActionResult<List<Employee>>> ListEmployeesByName([FromQuery] string name = "")
+        public async Task<ActionResult<ApiResponse<List<Employee>>>> ListEmployeesByName([FromQuery] string name = "")
         {
             var employees = await dbContext.Employees
                 .Where(e => e.Name.ToLower().Contains(name.Trim().ToLower()))
@@ -158,11 +171,13 @@ namespace PprWeek1.Controllers
 
             if (employees == null || employees.Count == 0)
             {
-                return NotFound($"No result for query '{name}'");
+                return new ApiResponse<List<Employee>>($"No result for query '{name}'")
+                {
+                    IsSuccess = false
+                };
             }
 
-            return Ok(employees);
+            return new ApiResponse<List<Employee>>(employees);
         }
-
     }
 }
